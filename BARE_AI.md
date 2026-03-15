@@ -92,3 +92,45 @@ powerful tool for developers.
 - Documentation is located in the `docs/` directory.
 - Suggest documentation updates when code changes render existing documentation
   obsolete or incomplete.
+
+---
+
+## Bare AI CLI — Sovereign Extensions
+
+This fork adds the following environment variables and behaviours on top of the upstream Gemini CLI:
+
+### Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `BARE_AI_ENDPOINT` | No | OpenAI-compatible chat completions endpoint. Defaults to `http://localhost:11434/v1/chat/completions` |
+| `BARE_AI_API_KEY` | No | API key for the endpoint. Defaults to `none` for local Ollama |
+| `BARE_AI_MODEL` | No | Model name to use. Defaults to `default` |
+| `BARE_AI_CONSTITUTION` | No | Path to constitution markdown file. Defaults to `~/.bare-ai/constitution.md` |
+| `BARE_AI_SEARCH_URL` | No | URL of local SearXNG instance for sovereign web search. If unset, falls back to Google via Gemini API |
+| `BARE_AI_LEAN_TOOLS` | No | Set to `true` to force lean mode, `false` to disable it regardless of model name |
+| `DEBUG_BARE_AI` | No | Set to `true` to enable verbose request/response logging to `bare-ai-trace.log` |
+
+### Lean Mode
+
+Models with names containing `tiny`, `small`, `mini`, `1b`, or `3b` automatically enter Lean Mode, which:
+- Strips tool schemas to required parameters only
+- Filters tools to essential set: `run_shell_command`, `read_file`, `write_file`, `list_directory`, `google_web_search`, `web_fetch`
+- Injects `num_ctx: 8192` into Ollama options to expand the context window
+
+### Sovereign Web Search
+
+Set `BARE_AI_SEARCH_URL` to route web searches through a local SearXNG instance:
+```bash
+# Quick start with Docker
+docker run -d --name searxng --restart unless-stopped \
+  -p 8080:8080 \
+  --security-opt seccomp=unconfined \
+  --security-opt apparmor=unconfined \
+  -v searxng-data:/etc/searxng \
+  searxng/searxng
+
+export BARE_AI_SEARCH_URL="http://localhost:8080"
+```
+
+Results are pruned to the top 5 (title, URL, snippet) before being passed to the model.
